@@ -21,3 +21,6 @@ Ensures the resolved job (whether a folder or file) exists.
 
 #### Inject (read-only)
 A read-only version of Inject that inserts a copy of the target job into the flow. Fails if the target file doesn't exist or cannot be copied.
+
+## Discussion
+https://forum.enfocus.com/viewtopic.php?f=13&t=1497 

@@ -22,5 +22,8 @@ Ensures the resolved job (whether a folder or file) exists.
 #### Inject (read-only)
 A read-only version of Inject that inserts a copy of the target job into the flow. Fails if the target file doesn't exist or cannot be copied.
 
+#### Count files
+Count the number of items in a directory. If the target job is a file, it returns 1. You must specify a private data key for the count result if you use this type.
+
 ## Discussion
 https://forum.enfocus.com/viewtopic.php?f=13&t=1497 

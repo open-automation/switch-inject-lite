@@ -25,5 +25,8 @@ A read-only version of Inject that inserts a copy of the target job into the flo
 #### Count files
 Count the number of items in a directory. If the target job is a file, it returns 1. You must specify a private data key for the count result if you use this type.
 
+#### Get size
+Recursively gets the size of the target job. You must specify a private data key for the size result as well as the unit you'd like the result in.
+
 ## Discussion
 https://forum.enfocus.com/viewtopic.php?f=13&t=1497 

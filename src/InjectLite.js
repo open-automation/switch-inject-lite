@@ -39,7 +39,8 @@ var getElementProperties = function(s : Switch ){
 		target_basename: null,
 		count_key: s.getPropertyValue("CountPrivateDataKey"),
 		size_key: s.getPropertyValue("SizePrivateDataKey"),
-		size_unit: s.getPropertyValue("SizeUnit")
+		size_unit: s.getPropertyValue("SizeUnit"),
+		name_after: s.getPropertyValue("InjectNameAfter")
 	};
 
 	// Determine the job path based on prop
@@ -107,14 +108,22 @@ var handleInject = function( prop, s : Switch, job : Job, callback ){
 		if(type === false){
 			callback(false, "Target file does not exist!", job.getPath());
 		} else {
-			s.log(2, "exists");
 
-			if(type === "dir"){
-				temp_path = s.createPathWithName(prop.target_basename, true);
+			// Determine output file name
+			if(prop.name_after == "Incoming job"){
+				output_basename = job.getName();
 			} else {
-				temp_path = s.createPathWithName(prop.target_basename, false);
+				output_basename = prop.target_basename;
 			}
 
+			// Create temp path to copy to
+			if(type === "dir"){
+				temp_path = s.createPathWithName(output_basename, true);
+			} else {
+				temp_path = s.createPathWithName(output_basename, false);
+			}
+
+			// Copy and callback
 			copy_successful = s.copy(prop.target_url, temp_path);
 			if(copy_successful == true){
 				callback(true, "Read-only inject was successful.", temp_path);

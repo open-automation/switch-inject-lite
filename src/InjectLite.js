@@ -13,6 +13,26 @@ var forEach = function(array, callback){
     }
 }
 
+var getTargetType = function( url ){
+	// Check to see if it is a directory
+	//exists = false;
+	type = false;
+	dir = new Dir( url );
+	if(dir.exists === true){
+		//exists = true;
+		type = "dir";
+	} else {
+		// Check to see if is a file
+		fs = new FileStatistics( url );
+		is_file = fs.isFile();
+		if(is_file == true){
+			//exists = true;
+			type = "file";
+		}
+	}
+	return type;
+}
+
 // Determine directory seperator
 var getDirectorySeperator = function( s : Switch ){
     var directorySeperator;
@@ -40,8 +60,16 @@ var getElementProperties = function(s : Switch ){
 		count_key: s.getPropertyValue("CountPrivateDataKey"),
 		size_key: s.getPropertyValue("SizePrivateDataKey"),
 		size_unit: s.getPropertyValue("SizeUnit"),
-		name_after: s.getPropertyValue("InjectNameAfter")
+		name_after: s.getPropertyValue("InjectNameAfter"),
+		search_depth: null
 	};
+
+	// Get search depth
+	if(p.inject_type == "Count files"){
+		p.search_depth = s.getPropertyValue("SearchDepthCount");
+	} else if(p.inject_type == "Get size"){
+		p.search_depth = s.getPropertyValue("SearchDepthSize");
+	}
 
 	// Determine the job path based on prop
 	if(p.target == "Specific job"){
@@ -51,6 +79,19 @@ var getElementProperties = function(s : Switch ){
 			p.target_url = p.job_repository + getDirectorySeperator(s) + p.job_name;
 		} else {
 			p.target_url = p.job_repository + getDirectorySeperator(s) + p.job_name + '.' + p.extension;
+		}
+	}
+
+	// Save target type as a property
+	if(p.target_url){
+		p.target_type = getTargetType(p.target_url);
+	}
+
+	// Add trailing space to directory if necessary
+	if(p.target_type == "dir"){
+		last_character = p.target_url.substring(p.target_url.length-1, p.target_url.length);
+		if(last_character !== "\\" && last_character !== "/"){
+			p.target_url += getDirectorySeperator(s);
 		}
 	}
 
@@ -68,27 +109,6 @@ var getElementProperties = function(s : Switch ){
 	return p;
 }
 
-var getTargetType = function( url ){
-	// Check to see if it is a directory
-	//exists = false;
-	type = false;
-	dir = new Dir( url );
-	if(dir.exists === true){
-		//exists = true;
-		type = "dir";
-	} else {
-		// Check to see if is a file
-		fs = new FileStatistics( url );
-		is_file = fs.isFile();
-		if(is_file == true){
-			//exists = true;
-			type = "file";
-		}
-	}
-
-	return type;
-
-}
 
 var handleInject = function( prop, s : Switch, job : Job, callback ){
 
@@ -133,7 +153,7 @@ var handleInject = function( prop, s : Switch, job : Job, callback ){
 		}
 
 	} else if(prop.inject_type == "Count files"){
-		type = getTargetType(prop.target_url);
+		type = prop.target_type;
 
 		if(type === false){
 			callback(false, "Target file does not exist!", job.getPath());
@@ -143,15 +163,26 @@ var handleInject = function( prop, s : Switch, job : Job, callback ){
 		} else if(type === "dir"){
 
 			// Function for recursively counting files within a directory
-			get_recursive_file_count = function(target_dir, entry_list){
-				file_count = 0;
+			get_recursive_file_count = function(target_dir, entry_list, search_depth, file_count, iteration){
+				if(typeof(file_count) == "undefined"){
+					file_count = 0;
+				}
+				if(typeof(iteration) == "undefined"){
+					iteration = 0;
+				}
+				if(iteration == search_depth){
+					return file_count;
+				}
+				iteration++;
+
 				forEach(entry_list, function(file_name, index){
 					type = getTargetType(target_dir + file_name);
 					if(type === "dir"){
 						sub_target_dir = target_dir + file_name + getDirectorySeperator(s);
 						sub_dir = new Dir(sub_target_dir);
 						sub_file_list = sub_dir.entryList("*", Dir.Files|Dir.Dirs|Dir.NoDotAndDotDot, Dir.Name);
-						result_count = get_recursive_file_count(sub_target_dir, sub_file_list);
+						result_count = get_recursive_file_count(sub_target_dir, sub_file_list, search_depth, file_count, iteration);
+						file_count += result_count;
 					} else if(type === "file"){
 						file_count++;
 					}
@@ -161,7 +192,7 @@ var handleInject = function( prop, s : Switch, job : Job, callback ){
 
 			dir = new Dir( prop.target_url );
 			file_list = dir.entryList("*", Dir.Files|Dir.Dirs|Dir.NoDotAndDotDot, Dir.Name);
-			count = get_recursive_file_count(prop.target_url, file_list);
+			count = get_recursive_file_count(prop.target_url, file_list, prop.search_depth);
 
 			job.setPrivateData(prop.count_key, count);
 			callback(true, "Target job contains " + count + " files.", job.getPath());
@@ -183,15 +214,26 @@ var handleInject = function( prop, s : Switch, job : Job, callback ){
 		} else if(type === "dir"){
 
 			// Function for recursively counting bytes within a directory
-			get_recursive_byte_count = function(target_dir, entry_list){
-				byte_count = 0;
+			get_recursive_byte_count = function(target_dir, entry_list, search_depth, byte_count, iteration){
+				if(typeof(byte_count) == "undefined"){
+					byte_count = 0;
+				}
+				if(typeof(iteration) == "undefined"){
+					iteration = 0;
+				}
+				if(iteration == search_depth){
+					return byte_count;
+				}
+				iteration++;
+
 				forEach(entry_list, function(file_name, index){
 					type = getTargetType(target_dir + file_name);
 					if(type === "dir"){
 						sub_target_dir = target_dir + file_name + getDirectorySeperator(s);
 						sub_dir = new Dir(sub_target_dir);
 						sub_file_list = sub_dir.entryList("*", Dir.Files|Dir.Dirs|Dir.NoDotAndDotDot, Dir.Name);
-						result_count = get_recursive_byte_count(sub_target_dir, sub_file_list);
+						result_size = get_recursive_byte_count(sub_target_dir, sub_file_list, search_depth, byte_count, iteration);
+						byte_count += result_size;
 					} else if(type === "file"){
 						fs = new FileStatistics(target_dir + file_name);
 						byte_count += fs.getByteCount();
@@ -213,7 +255,7 @@ var handleInject = function( prop, s : Switch, job : Job, callback ){
 
 			dir = new Dir( prop.target_url );
 			file_list = dir.entryList("*", Dir.Files|Dir.Dirs|Dir.NoDotAndDotDot, Dir.Name);
-			byte_count = get_recursive_byte_count(prop.target_url, file_list);
+			byte_count = get_recursive_byte_count(prop.target_url, file_list, prop.search_depth);
 
 			converted_size = bytesToSize(byte_count, prop.size_unit);
 

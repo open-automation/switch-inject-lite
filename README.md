@@ -43,7 +43,7 @@ Recursively gets the size of the target job. You must specify a private data key
 The private data key to reference the result.
 
 ##### Size unit
-The size unit in bytes, KB, MG, or GB.
+The size unit in bytes, KB, MB, or GB.
 
 ##### Search depth
 The number of sub-directories to search through if the target job is a directory.
